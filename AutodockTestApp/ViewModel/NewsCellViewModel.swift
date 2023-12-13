@@ -19,4 +19,9 @@ class NewsCellViewModel {
             delegate?.updateTitle(title)
         }
     }
+    
+    init(title: String) {
+        self.title = title
+    }
 }
+

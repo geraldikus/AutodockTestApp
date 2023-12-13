@@ -6,11 +6,14 @@
 //
 
 import UIKit
+import Combine
 
 class MainScreenView: UIViewController {
     
     private var collectionView: UICollectionView!
-//    private let cellIdentifier = "Cell"
+    private var news: [NewsModel] = []
+    
+    private var cancellables = Set<AnyCancellable>()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,9 +22,30 @@ class MainScreenView: UIViewController {
         title = "Новости"
         
         setupCollectionView()
+        fetchData()
+    }
+    
+    
+    private func fetchData() {
+        Network.shared.fetchNews()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    print("Error fetching data: \(error)")
+                case .finished:
+                    print("Data is ok")
+                    break
+                }
+            }, receiveValue: { [weak self] newsResponse in
+                self?.news = newsResponse.news
+                print(newsResponse)
+                DispatchQueue.main.async {
+                    self?.collectionView.reloadData()
+                }
+            })
+            .store(in: &cancellables)
     }
 
-    // В методе setupCollectionView() вашего MainScreenView
     private func setupCollectionView() {
         let layout = createLayout()
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
@@ -56,11 +80,10 @@ class MainScreenView: UIViewController {
 extension MainScreenView: UICollectionViewDataSource, UICollectionViewDelegate {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         
-        return 5
+        return news.count
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        
         return 1
     }
 
@@ -68,10 +91,17 @@ extension MainScreenView: UICollectionViewDataSource, UICollectionViewDelegate {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: NewsCellView.identifier, for: indexPath) as? NewsCellView else {
             return UICollectionViewCell()
         }
-        
-        cell.titleLabel.text = "Заголовок новости"
-        cell.backgroundColor = .green
-        
+
+        guard indexPath.section < news.count else {
+            print("Error in guard indexPath.section")
+            return cell
+        }
+
+        let newsItem = news[indexPath.section]
+        cell.configure(with: newsItem)
+        cell.layer.cornerRadius = 10
+
+        cell.backgroundColor = .systemGray6
         return cell
     }
 }
