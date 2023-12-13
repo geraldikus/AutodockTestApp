@@ -6,14 +6,19 @@
 //
 
 import UIKit
-import Combine
+
+protocol NewsCellViewModelDelegate: AnyObject {
+    func updateTitle(_ title: String)
+    func updateImage(_ image: UIImage)
+    func startActivityIndicator()
+    func stopActivityIndicator()
+}
 
 class NewsCellView: UICollectionViewCell {
     static let identifier = "NewsCell"
-    private var cancellable: AnyCancellable?
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
+    var viewModel = NewsCellViewModel()
     
-    let titleLabel: UILabel = {
+    private let titleLabel: UILabel = {
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
@@ -21,20 +26,21 @@ class NewsCellView: UICollectionViewCell {
         return label
     }()
     
-    let imageView: UIImageView = {
+    private let imageView: UIImageView = {
         let view = UIImageView()
         view.contentMode = .scaleToFill
         view.layer.cornerRadius = 10
         view.clipsToBounds = true
-
         return view
     }()
 
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         setupActivityIndicator()
+        viewModel.delegate = self
     }
 
     required init?(coder: NSCoder) {
@@ -55,14 +61,14 @@ class NewsCellView: UICollectionViewCell {
     private func setupViews() {
         addSubview(titleLabel)
         addSubview(imageView)
-
+        
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8)
         ])
-
+        
         imageView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
@@ -72,26 +78,23 @@ class NewsCellView: UICollectionViewCell {
             imageView.heightAnchor.constraint(equalToConstant: 250)
         ])
     }
-    
-    func configure(with newsItem: NewsModel) {
-        titleLabel.text = newsItem.title
-        imageView.image = UIImage(named: "placeholder")
-        activityIndicator.startAnimating()
-        
-        if let imageUrl = URL(string: newsItem.titleImageUrl) {
-            cancellable = URLSession.shared.dataTaskPublisher(for: imageUrl)
-                .map { UIImage(data: $0.data) }
-                .replaceError(with: nil)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] image in
-                    self?.imageView.image = image
-                }
-        }
-    }
 }
 
 extension NewsCellView: NewsCellViewModelDelegate {
     func updateTitle(_ title: String) {
         titleLabel.text = title
     }
+    
+    func updateImage(_ image: UIImage) {
+        imageView.image = image
+    }
+    
+    func startActivityIndicator() {
+        activityIndicator.startAnimating()
+    }
+    
+    func stopActivityIndicator() {
+        activityIndicator.stopAnimating()
+    }
 }
+

@@ -93,12 +93,12 @@ extension MainScreenView: UICollectionViewDataSource, UICollectionViewDelegate {
         }
 
         guard indexPath.section < news.count else {
-            print("Error in guard indexPath.section")
             return cell
         }
-
         let newsItem = news[indexPath.section]
-        cell.configure(with: newsItem)
+        
+        let viewModel = NewsCellViewModel()
+        cell.viewModel.configure(with: newsItem)
         cell.layer.cornerRadius = 10
 
         cell.backgroundColor = .systemGray6
