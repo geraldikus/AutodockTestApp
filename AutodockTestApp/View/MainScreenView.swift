@@ -11,41 +11,32 @@ import Combine
 class MainScreenView: UIViewController {
     
     private var collectionView: UICollectionView!
-    private var news: [NewsModel] = []
+    private var viewModel: MainScreenViewModel!
     
     private var cancellables = Set<AnyCancellable>()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         navigationController?.navigationBar.prefersLargeTitles = true
         title = "Новости"
         
+        viewModel = MainScreenViewModel()
         setupCollectionView()
-        fetchData()
+        bindViewModel()
+        viewModel.fetchNews()
     }
     
-    
-    private func fetchData() {
-        Network.shared.fetchNews()
-            .sink(receiveCompletion: { completion in
-                switch completion {
-                case .failure(let error):
-                    print("Error fetching data: \(error)")
-                case .finished:
-                    print("Data is ok")
-                    break
-                }
-            }, receiveValue: { [weak self] newsResponse in
-                self?.news = newsResponse.news
-                print(newsResponse)
+    private func bindViewModel() {
+        viewModel.$news
+            .sink { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.collectionView.reloadData()
                 }
-            })
+            }
             .store(in: &cancellables)
     }
-
+    
     private func setupCollectionView() {
         let layout = createLayout()
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
@@ -55,8 +46,8 @@ class MainScreenView: UIViewController {
         collectionView.register(NewsCellView.self, forCellWithReuseIdentifier: NewsCellView.identifier)
         view.addSubview(collectionView)
     }
-
-
+    
+    
     private func createLayout() -> UICollectionViewLayout {
         let layout = UICollectionViewCompositionalLayout { (sectionIndex, layoutEnvironment) -> NSCollectionLayoutSection? in
             
@@ -73,14 +64,14 @@ class MainScreenView: UIViewController {
         }
         return layout
     }
-
+    
 }
 
 // MARK: - UICollectionViewDataSource & UICollectionViewDelegate
 extension MainScreenView: UICollectionViewDataSource, UICollectionViewDelegate {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         
-        return news.count
+        return viewModel.news.count
     }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -92,18 +83,43 @@ extension MainScreenView: UICollectionViewDataSource, UICollectionViewDelegate {
             return UICollectionViewCell()
         }
 
-        guard indexPath.section < news.count else {
+        guard indexPath.section < viewModel.news.count else {
             return cell
         }
-        let newsItem = news[indexPath.section]
+        let newsItem = viewModel.news[indexPath.section]
         
-        let viewModel = NewsCellViewModel()
         cell.viewModel.configure(with: newsItem)
         cell.layer.cornerRadius = 10
 
         cell.backgroundColor = .systemGray6
         return cell
     }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard indexPath.section < viewModel.news.count else { return }
+        let selectedNews = viewModel.news[indexPath.section]
+        
+        guard let cell = collectionView.cellForItem(at: indexPath) else { return }
+        
+        UIView.animate(withDuration: 0.1, animations: {
+            cell.alpha = 0.1
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                cell.alpha = 1.0
+            }
+            
+            let detailView = DetailView()
+            detailView.fullURLString = selectedNews.fullUrl
+            
+            let transition = CATransition()
+            transition.duration = 0.3
+            transition.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
+            transition.type = CATransitionType.reveal
+            transition.subtype = CATransitionSubtype.fromRight
+            
+            self.navigationController?.view.layer.add(transition, forKey: kCATransition)
+            self.navigationController?.pushViewController(detailView, animated: false)
+        }
+    }
+
 }
-
-
