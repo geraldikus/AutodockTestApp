@@ -23,9 +23,23 @@ class MainScreenViewModel {
                     break
                 }
             }, receiveValue: { [weak self] newsResponse in
-                self?.news = newsResponse.news
+                let sortedNews = newsResponse.news.sorted(by: { (news1, news2) -> Bool in
+                    if let date1 = self?.getDate(from: news1.publishedDate),
+                       let date2 = self?.getDate(from: news2.publishedDate) {
+                        return date1 > date2
+                    }
+                    return false
+                })
+                self?.news = sortedNews
             })
             .store(in: &cancellables)
     }
+    
+    private func getDate(from dateString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return dateFormatter.date(from: dateString)
+    }
 }
+
 

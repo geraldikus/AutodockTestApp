@@ -22,7 +22,11 @@ class NewsCellView: UICollectionViewCell {
         let label = UILabel()
         label.numberOfLines = 0
         label.textAlignment = .center
-        label.font = .boldSystemFont(ofSize: 16)
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            label.font = .boldSystemFont(ofSize: 20)
+        } else {
+            label.font = .boldSystemFont(ofSize: 16)
+        }
         return label
     }()
     
@@ -63,6 +67,7 @@ class NewsCellView: UICollectionViewCell {
         addSubview(imageView)
         
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
@@ -70,6 +75,7 @@ class NewsCellView: UICollectionViewCell {
         ])
         
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
             imageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
